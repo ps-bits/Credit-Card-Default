@@ -7,6 +7,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import confusion_matrix, classification_report
 import matplotlib.pyplot as plt
 import seaborn as sns
+import gzip
 
 # Set page config
 st.set_page_config(page_title="Credit Card Default Prediction", layout="wide")
@@ -17,23 +18,24 @@ st.markdown("Predicting customer default using 6 Machine Learning Models")
 
 # Load models and scaler
 @st.cache_resource
+@st.cache_resource
 def load_models():
     models = {}
     model_files = {
-        'Logistic Regression': 'logistic_regression.pkl',
-        'Decision Tree': 'decision_tree.pkl',
-        'K-Nearest Neighbor': 'knn.pkl',
-        'Naive Bayes': 'naive_bayes.pkl',
-        'Random Forest': 'random_forest.pkl',
-        'XGBoost': 'xgboost.pkl'
+        'Logistic Regression': 'logistic_regression.pkl.gz',
+        'Decision Tree': 'decision_tree.pkl.gz',
+        'K-Nearest Neighbor': 'knn.pkl.gz',
+        'Naive Bayes': 'naive_bayes.pkl.gz',
+        'Random Forest': 'random_forest.pkl.gz',
+        'XGBoost': 'xgboost.pkl.gz'
     }
     
-    models_dir = 'models'
+    models_dir = os.path.join(os.path.dirname(__file__), 'models')
     for model_name, filename in model_files.items():
-        with open(os.path.join(models_dir, filename), 'rb') as f:
+        with gzip.open(os.path.join(models_dir, filename), 'rb') as f:
             models[model_name] = pickle.load(f)
     
-    with open(os.path.join(models_dir, 'scaler.pkl'), 'rb') as f:
+    with gzip.open(os.path.join(models_dir, 'scaler.pkl.gz'), 'rb') as f:
         scaler = pickle.load(f)
     
     return models, scaler
