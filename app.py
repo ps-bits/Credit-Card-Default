@@ -12,6 +12,8 @@ import seaborn as sns
 # Set page config
 st.set_page_config(page_title="Credit Card Default Prediction", layout="wide")
 
+st.divider()
+
 # Title
 st.title("💳 Credit Card Default Prediction")
 st.markdown("Predicting customer default using 6 Machine Learning Models")
