@@ -3,11 +3,11 @@ import pandas as pd
 import numpy as np
 import pickle
 import os
+import gzip
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import confusion_matrix, classification_report
 import matplotlib.pyplot as plt
 import seaborn as sns
-import gzip
 
 # Set page config
 st.set_page_config(page_title="Credit Card Default Prediction", layout="wide")
@@ -17,7 +17,6 @@ st.title("💳 Credit Card Default Prediction")
 st.markdown("Predicting customer default using 6 Machine Learning Models")
 
 # Load models and scaler
-@st.cache_resource
 @st.cache_resource
 def load_models():
     models = {}
@@ -50,7 +49,7 @@ results_df = load_results()
 
 # Sidebar
 st.sidebar.header("Navigation")
-page = st.sidebar.radio("Select a page:", ["Home", "Model Comparison", "Make Predictions"])
+page = st.sidebar.radio("Select a page:", ["Home", "Model Comparison", "Make Predictions", "Evaluate with Test Data"])
 
 # ==================== PAGE 1: HOME ====================
 if page == "Home":
@@ -174,32 +173,27 @@ elif page == "Make Predictions":
     
     with col2:
         age = st.slider("Age", min_value=21, max_value=79, value=35)
-        #pay_0 = st.selectbox("Recent Payment Status", [-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9], value=0)
         pay_0 = st.selectbox("Recent Payment Status", [-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9], index=1)
         bill_amt1 = st.number_input("Recent Bill Amount (NT$)", min_value=0, max_value=900000, value=50000, step=1000)
         pay_amt1 = st.number_input("Recent Payment Amount (NT$)", min_value=0, max_value=500000, value=10000, step=1000)
     
     with col3:
-        #pay_2 = st.selectbox("Payment Status (2 months ago)", [-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9], value=0)
         pay_2 = st.selectbox("Payment Status (2 months ago)", [-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9], index=1)
         bill_amt2 = st.number_input("Bill Amount (2 months ago) (NT$)", min_value=0, max_value=900000, value=45000, step=1000)
         pay_amt2 = st.number_input("Payment Amount (2 months ago) (NT$)", min_value=0, max_value=500000, value=9000, step=1000)
     
-    # Create input array with all 24 features (simplified for demo)
-    # In production, you'd need all 24 features
+    # Create input array with all 24 features
     input_data = np.array([[
         limit_bal, sex, education, marriage, age,
-        pay_0, pay_2, 0, 0, 0, 0,  # PAY_3 to PAY_6
-        bill_amt1, bill_amt2, 0, 0, 0, 0,  # BILL_AMT3 to BILL_AMT6
-        pay_amt1, pay_amt2, 0, 0, 0, 0  # PAY_AMT3 to PAY_AMT6
+        pay_0, pay_2, 0, 0, 0, 0,
+        bill_amt1, bill_amt2, 0, 0, 0, 0,
+        pay_amt1, pay_amt2, 0, 0, 0, 0
     ]])
     
     # Make prediction
     if st.button("🔮 Make Prediction", key="predict_button"):
-        # Scale input
         input_scaled = scaler.transform(input_data)
         
-        # Get prediction and probability
         model = models[selected_model]
         prediction = model.predict(input_scaled)[0]
         probability = model.predict_proba(input_scaled)[0]
@@ -220,6 +214,130 @@ elif page == "Make Predictions":
             st.write(f"- Probability of Default: {probability[1] * 100:.2f}%")
             st.write(f"- Probability of Payment: {probability[0] * 100:.2f}%")
 
+# ==================== PAGE 4: EVALUATE WITH TEST DATA ====================
+elif page == "Evaluate with Test Data":
+    st.header("📊 Evaluate Models with Test Data")
+    
+    st.write("Upload a CSV file with test data to evaluate model performance and view confusion matrices")
+    
+    # File upload
+    uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
+    
+    if uploaded_file is not None:
+        try:
+            # Load data
+            df = pd.read_csv(uploaded_file)
+            
+            st.success(f"✅ File loaded! Shape: {df.shape}")
+            
+            # Check if target column exists
+            if 'default payment next month' not in df.columns and 'Y' not in df.columns:
+                st.error("❌ Error: File must contain 'default payment next month' or 'Y' column as target")
+            else:
+                # Determine target column name
+                target_col = 'default payment next month' if 'default payment next month' in df.columns else 'Y'
+                
+                # Separate features and target
+                y_true = df[target_col]
+                X_test = df.drop([target_col], axis=1)
+                
+                # Handle ID column if present
+                if 'ID' in X_test.columns or 'Unnamed: 0' in X_test.columns:
+                    X_test = X_test.drop(['ID'] if 'ID' in X_test.columns else ['Unnamed: 0'], axis=1)
+                
+                st.write(f"Features: {X_test.shape[1]}, Samples: {X_test.shape[0]}")
+                
+                # Scale features
+                X_test_scaled = scaler.transform(X_test)
+                
+                # Model selection
+                selected_model = st.selectbox("Select a Model to Evaluate:", list(models.keys()), key="eval_model")
+                
+                st.divider()
+                
+                # Make predictions
+                model = models[selected_model]
+                y_pred = model.predict(X_test_scaled)
+                y_pred_proba = model.predict_proba(X_test_scaled)[:, 1]
+                
+                # Display metrics
+                st.subheader("📈 Evaluation Metrics")
+                
+                from sklearn.metrics import accuracy_score, roc_auc_score, precision_score, recall_score, f1_score, matthews_corrcoef
+                
+                accuracy = accuracy_score(y_true, y_pred)
+                auc = roc_auc_score(y_true, y_pred_proba)
+                precision = precision_score(y_true, y_pred)
+                recall = recall_score(y_true, y_pred)
+                f1 = f1_score(y_true, y_pred)
+                mcc = matthews_corrcoef(y_true, y_pred)
+                
+                col1, col2, col3, col4, col5, col6 = st.columns(6)
+                with col1:
+                    st.metric("Accuracy", f"{accuracy:.4f}")
+                with col2:
+                    st.metric("AUC", f"{auc:.4f}")
+                with col3:
+                    st.metric("Precision", f"{precision:.4f}")
+                with col4:
+                    st.metric("Recall", f"{recall:.4f}")
+                with col5:
+                    st.metric("F1 Score", f"{f1:.4f}")
+                with col6:
+                    st.metric("MCC", f"{mcc:.4f}")
+                
+                st.divider()
+                
+                # Confusion Matrix
+                st.subheader("🔲 Confusion Matrix")
+                
+                cm = confusion_matrix(y_true, y_pred)
+                
+                fig, ax = plt.subplots(figsize=(8, 6))
+                sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax, 
+                           xticklabels=['No Default', 'Default'],
+                           yticklabels=['No Default', 'Default'],
+                           cbar_kws={'label': 'Count'})
+                ax.set_ylabel('True Label')
+                ax.set_xlabel('Predicted Label')
+                ax.set_title(f'Confusion Matrix - {selected_model}')
+                st.pyplot(fig)
+                
+                st.divider()
+                
+                # Classification Report
+                st.subheader("📋 Classification Report")
+                
+                report = classification_report(y_true, y_pred, 
+                                             target_names=['No Default', 'Default'],
+                                             output_dict=True)
+                
+                report_df = pd.DataFrame(report).transpose()
+                st.dataframe(report_df, use_container_width=True)
+                
+                st.divider()
+                
+                # Detailed interpretation
+                st.subheader("📊 Detailed Interpretation")
+                
+                tn, fp, fn, tp = cm.ravel()
+                
+                st.write(f"""
+                **Confusion Matrix Breakdown:**
+                - True Negatives (TN): {tn} - Correctly identified non-defaulters
+                - False Positives (FP): {fp} - Non-defaulters incorrectly flagged as defaulters
+                - False Negatives (FN): {fn} - Defaulters missed by the model
+                - True Positives (TP): {tp} - Correctly identified defaulters
+                
+                **Model Performance Interpretation:**
+                - High Recall ({recall:.2%}) means the model catches most actual defaulters
+                - High Precision ({precision:.2%}) means few false alarms
+                - High F1 Score ({f1:.2%}) indicates good overall balance
+                """)
+                
+        except Exception as e:
+            st.error(f"❌ Error processing file: {str(e)}")
+
 st.divider()
 st.write("---")
-st.write("📝 **Created by**: Priya S | **Course**: Machine Learning Assignment 2")
+st.write("📝 **Created by**: Priya S | ID : 2025AB05326 | **Course**: Machine Learning Classification Assignment 2 | **Status**: ✅ Complete")
