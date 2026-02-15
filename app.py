@@ -12,8 +12,8 @@ import seaborn as sns
 # Set page config
 st.set_page_config(page_title="Credit Card Default Prediction", layout="wide")
 
-st.header("Machine Learning Classification Assignment")
-st.header("ID : 2025AB05326 |  Name : Priya S")
+st.subheader("Machine Learning Classification Assignment")
+st.subheader("ID : 2025AB05326 |  Name : Priya S")
 st.divider()
 # Title
 st.title("💳 Credit Card Default Prediction")
@@ -343,4 +343,4 @@ elif page == "Evaluate with Test Data":
 
 st.divider()
 st.write("---")
-st.write("📝 **Created by**: Priya S | ID : 2025AB05326 | **Course**: Machine Learning Classification Assignment 2 | **Status**: ✅ Complete")
+st.write("📝 **Created by**: Priya S | ID : 2025AB05326 ")
