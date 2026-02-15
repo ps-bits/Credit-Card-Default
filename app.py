@@ -11,10 +11,9 @@ import seaborn as sns
 
 # Set page config
 st.set_page_config(page_title="Credit Card Default Prediction", layout="wide")
-
 st.divider()
 st.title("Machine Learning Classification Assignment")
-st.markdown("ID : 2025AB05326 |  Name : Priya S")
+st.header("ID : 2025AB05326 |  Name : Priya S")
 st.divider()
 # Title
 st.title("💳 Credit Card Default Prediction")
