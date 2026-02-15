@@ -1,4 +1,3 @@
-
 # Credit-Card-Default
 Credit Card Default Prediction using 6 ML Models
 
@@ -51,5 +50,4 @@ Best accuracy (81.6%) with excellent AUC (0.757). Good balance across all metric
 
 XGBoost (Ensemble):
 Highest AUC score (0.775) - best at distinguishing between defaulters and non-defaulters. Achieves 81.48% accuracy with strong gradient boosting approach. Most suitable for production deployment due to superior discrimination ability and ability to handle complex patterns in imbalanced data.
-
 
